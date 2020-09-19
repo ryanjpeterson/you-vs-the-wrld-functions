@@ -1,13 +1,12 @@
 const functions = require("firebase-functions");
 const app = require("express")();
 const cors = require("cors");
-const { admin, db } = require("./util/admin");
+const { db } = require("./util/admin");
 
 app.use(cors());
 
-app.get("/posts", async (req, res) => {
-  await db
-    .collection("posts")
+app.get("/posts", (req, res) => {
+  db.collection("posts")
     .get()
     .then((querySnapshot) => {
       let posts = [];
@@ -17,10 +16,31 @@ app.get("/posts", async (req, res) => {
           ...doc.data(),
         });
       });
-      return res.json(posts);
+      return res.status(200).json(posts);
     })
     .catch((err) => {
-      return res.json({ error: err.code });
+      return res.status(500).json({ error: err.code });
+    });
+});
+
+app.get("/posts/:postId", (req, res) => {
+  let postData = {};
+
+  db.doc(`/posts/${req.params.postId}`)
+    .get()
+    .then((doc) => {
+      if (!doc.exists) {
+        return res.status(404).json({ error: "Post not found" });
+      }
+
+      postData = doc.data();
+      postData.id = doc.id;
+    })
+    .then(() => {
+      return res.status(200).json(postData);
+    })
+    .catch((err) => {
+      return res.status(500).json({ error: err });
     });
 });
 
